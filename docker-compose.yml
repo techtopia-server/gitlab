@@ -10,11 +10,12 @@ services:
       - "$STACK_DATA/data:/var/opt/gitlab"
     networks:
       - "webapp"
+      - gitlab
     ports:
       - "$LOCAL_IP:8088:80"
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'https://code.$DOMAIN'
+        # external_url 'https://code.$DOMAIN'
         # Add any other gitlab.rb configuration here, each on its own line
     labels:
       - "traefik.enable=true"
@@ -32,7 +33,16 @@ services:
       - "traefik.http.middlewares.gitlabHeaders.headers.browserXssFilter=true"
       - "traefik.http.middlewares.gitlabHeaders.headers.stsSeconds=31536000"
       - "traefik.http.routers.gitlab.middlewares=gitlabHeaders"
+  gitlab-runner:
+    image: gitlab/gitlab-runner
+    container_name: gitlab-runner
+    restart: unless-stopped
+    networks:
+      - gitlab
+    volumes:
+      - "$STACK_DATA/runner:/etc/gitlab-runner"
 networks:
+  gitlab:
   webapp:
     external:
       name: 'webapp'
