@@ -1,0 +1,38 @@
+version: '3'
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    restart: unless-stopped
+    volumes:
+      - "$STACK_DATA/configs:/etc/gitlab"
+      - "$STACK_DATA/logs:/var/log/gitlab"
+      - "$STACK_DATA/data:/var/opt/gitlab"
+    networks:
+      - "webapp"
+    ports:
+      - "$LOCAL_IP:8088:80"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://code.$DOMAIN'
+        # Add any other gitlab.rb configuration here, each on its own line
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.gitlab.loadbalancer.server.port=80"
+      - "traefik.http.routers.gitlab.rule=Host(`code.${DOMAIN}`)"
+      - "traefik.http.routers.gitlab.entrypoints=websecure"
+      - "traefik.http.routers.gitlab.tls.certresolver=leresolver"
+      - "traefik.http.middlewares.gitlabHeaders.headers.contentSecurityPolicy=default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+      - "traefik.http.middlewares.gitlabHeaders.headers.framedeny=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.sslredirect=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.stsPreload=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.gitlabHeaders.headers.stsSeconds=31536000"
+      - "traefik.http.routers.gitlab.middlewares=gitlabHeaders"
+networks:
+  webapp:
+    external:
+      name: 'webapp'
